@@ -1,5 +1,6 @@
 site_name: rotalabs-redqueen
 site_description: Evolutionary adversarial testing framework - Quality-diversity evolution for AI safety research
+site_url: https://rotalabs.github.io/rotalabs-redqueen/
 site_author: Rotalabs Research
 
 repo_url: https://github.com/rotalabs/rotalabs-redqueen
@@ -7,6 +8,8 @@ repo_name: rotalabs/rotalabs-redqueen
 
 theme:
   name: material
+  logo: assets/logo-icon-light.png
+  favicon: assets/logo-icon-light.png
   palette:
     - scheme: default
       primary: red
@@ -23,7 +26,11 @@ theme:
   features:
     - navigation.sections
     - navigation.expand
+    - navigation.top
     - content.code.copy
+    - search.suggest
+  icon:
+    repo: fontawesome/brands/github
 
 plugins:
   - search
@@ -66,3 +73,19 @@ markdown_extensions:
   - pymdownx.details
   - pymdownx.tabbed:
       alternate_style: true
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/rotalabs/rotalabs-redqueen
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/rotalabs-redqueen/
+  generator: false
+
+copyright: |
+  <a href="https://rotalabs.ai"><img src="assets/logo-light-full.png" alt="Rotalabs" style="height: 30px; vertical-align: middle;"></a>
+  &nbsp;&copy; 2025 Rotalabs
