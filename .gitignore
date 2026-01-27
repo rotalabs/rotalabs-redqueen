@@ -4,3 +4,7 @@ build/
 __pycache__/
 .venv/
 *.pyc
+
+# mkdocs build
+site/
+.coverage

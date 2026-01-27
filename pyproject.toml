@@ -4,24 +4,104 @@ build-backend = "hatchling.build"
 
 [project]
 name = "rotalabs-redqueen"
-version = "0.0.1"
-description = "Evolutionary adversarial testing - Genetic algorithms for attack pattern generation"
+version = "0.1.0"
+description = "Evolutionary adversarial testing framework - Quality-diversity evolution for AI safety research"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.9"
 authors = [
-    { name = "Rotalabs", email = "research@rotalabs.ai" }
+    { name = "Subhadip Mitra", email = "subhadip@rotalabs.ai" },
+    { name = "Rotalabs Research", email = "research@rotalabs.ai" },
 ]
 classifiers = [
-    "Development Status :: 1 - Planning",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Security",
 ]
-keywords = ["ai", "adversarial", "testing", "genetic-algorithms", "security"]
+keywords = [
+    "evolutionary-algorithms",
+    "adversarial-testing",
+    "quality-diversity",
+    "map-elites",
+    "ai-safety",
+    "red-teaming",
+    "llm-security",
+]
+
+dependencies = [
+    "numpy>=1.24.0",
+    "httpx>=0.25.0",
+    "tqdm>=4.65.0",
+]
+
+[project.optional-dependencies]
+openai = [
+    "openai>=1.0.0",
+]
+anthropic = [
+    "anthropic>=0.18.0",
+]
+llm = [
+    "rotalabs-redqueen[openai,anthropic]",
+]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.5.0",
+]
+docs = [
+    "mkdocs>=1.5.0",
+    "mkdocs-material>=9.4.0",
+    "mkdocstrings[python]>=0.24.0",
+]
+all = [
+    "rotalabs-redqueen[llm]",
+]
 
 [project.urls]
 Homepage = "https://rotalabs.ai"
 Repository = "https://github.com/rotalabs/rotalabs-redqueen"
+Documentation = "https://rotalabs.github.io/rotalabs-redqueen/"
+
+[project.scripts]
+rotalabs-redqueen = "rotalabs_redqueen.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/rotalabs_redqueen"]
+
+[tool.black]
+line-length = 100
+target-version = ["py39"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "C4", "UP"]
+ignore = ["E501", "B008"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["rotalabs_redqueen"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+asyncio_mode = "auto"
+addopts = "-v --cov=src/rotalabs_redqueen --cov-report=term-missing"
+
+[tool.coverage.run]
+source = ["src/rotalabs_redqueen"]
+branch = true
