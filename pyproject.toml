@@ -4,10 +4,10 @@ build-backend = "hatchling.build"
 
 [project]
 name = "rotalabs-redqueen"
-version = "0.1.0"
+version = "1.0.0"
 description = "Evolutionary adversarial testing framework - Quality-diversity evolution for AI safety research"
 readme = "README.md"
-license = "MIT"
+license = "AGPL-3.0-or-later"
 requires-python = ">=3.9"
 authors = [
     { name = "Subhadip Mitra", email = "subhadip@rotalabs.ai" },
@@ -17,7 +17,7 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
