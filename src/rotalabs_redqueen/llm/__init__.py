@@ -31,6 +31,7 @@ from rotalabs_redqueen.llm.judge import (
     JudgeResult,
     LLMJudge,
 )
+from rotalabs_redqueen.llm.mcp import MCPTarget
 from rotalabs_redqueen.llm.targets import (
     AnthropicTarget,
     GeminiTarget,
@@ -63,6 +64,7 @@ __all__ = [
     "GeminiTarget",
     "OllamaTarget",
     "MockTarget",
+    "MCPTarget",
     "TargetResponse",
     "TargetError",
     "RateLimitError",
