@@ -10,6 +10,7 @@ from rotalabs_redqueen.core.archive import (
     BehaviorDimension,
     MapElitesArchive,
 )
+from rotalabs_redqueen.core.coevolution import CoevolutionResult, coevolve
 from rotalabs_redqueen.core.evolution import (
     Evolution,
     EvolutionConfig,
@@ -76,6 +77,9 @@ __all__ = [
     "EvolutionConfig",
     "EvolutionResult",
     "evolve",
+    # Co-evolution
+    "coevolve",
+    "CoevolutionResult",
     # Reporting
     "Report",
     "ReportExporter",

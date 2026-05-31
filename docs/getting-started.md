@@ -52,6 +52,28 @@ await evolve(genome_class=AgenticGenome, fitness=JailbreakFitness(MockTarget()),
              generations=50, population_size=20, seed=1, progress=False)
 ```
 
+## Co-evolution (attacker vs defender)
+
+```python
+from rotalabs_redqueen import (
+    coevolve, LLMAttackGenome, SystemPromptDefense,
+    JailbreakFitness, DefenderBlockFitness, MockTarget, HeuristicJudge,
+)
+
+base = MockTarget()
+judge = HeuristicJudge()
+result = await coevolve(
+    attacker_class=LLMAttackGenome,
+    defender_class=SystemPromptDefense,
+    attacker_fitness_vs=lambda d: JailbreakFitness(d.as_defense(base), judge),
+    defender_fitness_vs=lambda a: DefenderBlockFitness(a, base, judge),
+    generations=20,
+    population_size=24,
+    seed=1,
+)
+print(result.best_defender.to_dict(), result.attacker_fitness, result.defender_fitness)
+```
+
 ## Quality-diversity with MAP-Elites
 
 ```python

@@ -15,6 +15,7 @@ from rotalabs_redqueen.conformance import (
     run_l3,
     run_l4_agentic,
     run_l4_multiturn,
+    run_l5,
 )
 from rotalabs_redqueen.core.canonical import canonical_json
 
@@ -44,6 +45,10 @@ def test_l4_multiturn_determinism():
 
 def test_l4_agentic_determinism():
     _assert_matches_golden("L4_agentic", run_l4_agentic(CONFORMANCE_SEED))
+
+
+def test_l5_coevolution_determinism():
+    _assert_matches_golden("L5_coevolution", run_l5(CONFORMANCE_SEED))
 
 
 def test_l2_is_reproducible_within_run():

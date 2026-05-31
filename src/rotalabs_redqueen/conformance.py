@@ -197,3 +197,33 @@ def run_l4_multiturn(seed: int = CONFORMANCE_SEED) -> dict:
 def run_l4_agentic(seed: int = CONFORMANCE_SEED) -> dict:
     """L4: agentic / tool-use determinism. Returns the archive wire dict."""
     return asyncio.run(_l4_agentic(seed)).to_dict()
+
+
+async def _l5(seed: int) -> dict:
+    from rotalabs_redqueen.core.coevolution import coevolve
+    from rotalabs_redqueen.llm.defense import DefenderBlockFitness, SystemPromptDefense
+
+    base_target = MockTarget()
+    judge = HeuristicJudge()
+    result = await coevolve(
+        attacker_class=LLMAttackGenome,
+        defender_class=SystemPromptDefense,
+        attacker_fitness_vs=lambda d: JailbreakFitness(d.as_defense(base_target), judge),
+        defender_fitness_vs=lambda a: DefenderBlockFitness(a, base_target, judge),
+        generations=15,
+        population_size=24,
+        seed=seed,
+    )
+    return {
+        "best_attacker": result.best_attacker.to_dict(),
+        "best_defender": result.best_defender.to_dict(),
+        "attacker_fitness": result.attacker_fitness,
+        "defender_fitness": result.defender_fitness,
+        "generations": result.generations,
+        "history": result.history,
+    }
+
+
+def run_l5(seed: int = CONFORMANCE_SEED) -> dict:
+    """L5: competitive co-evolution determinism (attacker vs defender)."""
+    return asyncio.run(_l5(seed))

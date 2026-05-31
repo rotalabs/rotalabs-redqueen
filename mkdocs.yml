@@ -58,6 +58,7 @@ nav:
       - Selection: api/core/selection.md
       - Archive: api/core/archive.md
       - Evolution: api/core/evolution.md
+      - Co-evolution: api/core/coevolution.md
       - Reporting: api/core/report.md
     - LLM Domain:
       - Overview: api/llm/index.md
@@ -65,6 +66,7 @@ nav:
       - Targets: api/llm/targets.md
       - Judges: api/llm/judges.md
       - Fitness: api/llm/fitness.md
+      - Defenses: api/llm/defense.md
 
 markdown_extensions:
   - pymdownx.highlight:

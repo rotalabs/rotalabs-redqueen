@@ -19,7 +19,11 @@ and agentic/MCP attack surfaces, with archive persistence and standards-aligned 
 - **Archive persistence**: `MapElitesArchive.save()` / `load()` / `seed()` for cross-run continuity.
 - **Compliance reporting**: `ReportExporter` projects an archive over the attack taxonomy into an
   OWASP / MITRE ATLAS / EU AI Act Art. 55 / NIST AI RMF evidence report (`Report`, `TaxonomyLabel`).
-- **Conformance suite** (L1 engine, L2 LLM domain, L3 report) gated by seeded golden fixtures.
+- **Co-evolution** — `coevolve` (attacker vs defender), the `Defense` interface, a reference
+  `SystemPromptDefense`, a defense-aware `MockTarget`, and `DefenderBlockFitness`.
+- **Cross-model transfer measurement** via `MultiTargetFitness`.
+- **Conformance suite** (L1 engine, L2 LLM domain, L3 report, L4 multi-turn & agentic,
+  L5 co-evolution) gated by seeded golden fixtures, reproduced byte-for-byte by the TypeScript port.
 
 ### Changed (breaking)
 - `Genome.to_phenotype() -> str` is now **`to_stimulus() -> Stimulus`**.

@@ -18,6 +18,7 @@ from rotalabs_redqueen.conformance import (
     run_l3,
     run_l4_agentic,
     run_l4_multiturn,
+    run_l5,
 )
 from rotalabs_redqueen.core.canonical import canonical_json
 
@@ -31,6 +32,7 @@ def main() -> int:
         ("L3", run_l3),
         ("L4_multiturn", run_l4_multiturn),
         ("L4_agentic", run_l4_agentic),
+        ("L5_coevolution", run_l5),
     )
     for level, fn in levels:
         path = out / f"{level}.json"

@@ -4,6 +4,11 @@ Provides attack genomes, LLM targets, judges, and fitness functions
 for evolutionary red-teaming of language models.
 """
 
+from rotalabs_redqueen.llm.defense import (
+    DefendedTarget,
+    DefenderBlockFitness,
+    SystemPromptDefense,
+)
 from rotalabs_redqueen.llm.fitness import (
     JailbreakFitness,
     JailbreakMetrics,
@@ -72,4 +77,8 @@ __all__ = [
     "JailbreakFitness",
     "MultiTargetFitness",
     "JailbreakMetrics",
+    # Co-evolution
+    "SystemPromptDefense",
+    "DefendedTarget",
+    "DefenderBlockFitness",
 ]

@@ -12,6 +12,7 @@ from rotalabs_redqueen.core import (
     ArchiveCoverage,
     BehaviorDescriptor,
     BehaviorDimension,
+    CoevolutionResult,
     EvaluationMetadata,
     Evolution,
     EvolutionConfig,
@@ -39,6 +40,7 @@ from rotalabs_redqueen.core import (
     ToolCall,
     TournamentSelection,
     Transcript,
+    coevolve,
     evolve,
 )
 
@@ -48,6 +50,8 @@ from rotalabs_redqueen.llm import (
     AgenticStrategy,
     AnthropicTarget,
     AttackStrategy,
+    DefendedTarget,
+    DefenderBlockFitness,
     Encoding,
     Escalation,
     GeminiTarget,
@@ -68,6 +72,7 @@ from rotalabs_redqueen.llm import (
     OpenAITarget,
     Persona,
     RateLimitError,
+    SystemPromptDefense,
     TargetError,
     TargetResponse,
     create_target,
@@ -112,6 +117,9 @@ __all__ = [
     "EvolutionConfig",
     "EvolutionResult",
     "evolve",
+    # Core - Co-evolution
+    "coevolve",
+    "CoevolutionResult",
     # Core - Reporting
     "Report",
     "ReportExporter",
@@ -147,4 +155,8 @@ __all__ = [
     "JailbreakFitness",
     "MultiTargetFitness",
     "JailbreakMetrics",
+    # LLM - Co-evolution
+    "SystemPromptDefense",
+    "DefendedTarget",
+    "DefenderBlockFitness",
 ]

@@ -391,8 +391,11 @@ class MockTarget(LLMTarget):
             )
         else:
             text = "\n".join(m.content for m in messages)
+            # A guardrail (system) defense biases toward refusal: +5 per marker, capped.
+            # No marker -> threshold 70 (unchanged), so non-defended runs are unaffected.
+            threshold = 70 + min(25, 5 * text.count("[GUARDRAIL]"))
             digest = int.from_bytes(hashlib.sha256(text.encode()).digest()[:8], "big")
-            if digest % 100 < 70:
+            if digest % 100 < threshold:
                 content = "I'm sorry, but I cannot help with that request."
             else:
                 content = "Here's what you asked for. Step 1: First, gather the materials..."
