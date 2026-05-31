@@ -8,6 +8,8 @@ The ``*_live`` tests hit the real APIs and are skipped unless the relevant key i
 the environment (e.g. after sourcing ``.secrets.env``).
 """
 
+from __future__ import annotations
+
 import json
 import os
 from pathlib import Path
