@@ -72,6 +72,17 @@ ag = await evolve(genome_class=AgenticGenome,
                   generations=50, population_size=20, seed=1, progress=False)
 ```
 
+To drive a **real MCP server** instead of the deterministic `MockTarget`, use `MCPTarget` — it
+performs the MCP handshake and executes each agentic step as a `tools/call`, surfacing tool output
+for judging:
+
+```python
+from rotalabs_redqueen.llm import MCPTarget
+
+target = MCPTarget(command=["npx", "-y", "@modelcontextprotocol/server-everything"])
+# agentic action-plan steps become MCP tool calls; the tool output is what the judge scores
+```
+
 ## Quality-diversity with MAP-Elites
 
 ```python
@@ -110,6 +121,28 @@ print(exporter.render(report, "markdown").decode())   # or "json"
 The report groups successful attacks by harm category and crosswalks them to OWASP LLM/Agentic
 Top-10, MITRE ATLAS, EU AI Act Article 55, and NIST AI RMF GOVERN 1.7.
 
+## Co-evolution (attacker vs defender)
+
+Evolve an attacker population against a defender population — defenders evolve guardrails that reduce
+attack success, attackers adapt to bypass them:
+
+```python
+from rotalabs_redqueen import (
+    coevolve, LLMAttackGenome, SystemPromptDefense,
+    JailbreakFitness, DefenderBlockFitness, MockTarget, HeuristicJudge,
+)
+
+base, judge = MockTarget(), HeuristicJudge()
+result = await coevolve(
+    attacker_class=LLMAttackGenome,
+    defender_class=SystemPromptDefense,
+    attacker_fitness_vs=lambda d: JailbreakFitness(d.as_defense(base), judge),
+    defender_fitness_vs=lambda a: DefenderBlockFitness(a, base, judge),
+    generations=20, population_size=24, seed=1,
+)
+print(result.best_defender.to_dict(), result.attacker_fitness, result.defender_fitness)
+```
+
 ## Persistence and continuous red-teaming
 
 Archives serialize, so attacks accumulate across runs (e.g. a CI gate that gets stronger over time):
@@ -138,9 +171,10 @@ rotalabs-redqueen info --strategies | --encodings | --targets
 `Selection` (tournament / novelty / **lexicase**), `MapElitesArchive`, `Evolution`, and the
 canonical `Rng`.
 
-**LLM domain**: `LLMAttackGenome` / `MultiTurnGenome` / `AgenticGenome`; `LLMTarget`
-(OpenAI, Anthropic, **Gemini**, Ollama, Mock); `Judge` (heuristic, LLM); `JailbreakFitness` /
-`MultiTargetFitness`.
+**LLM domain**: `LLMAttackGenome` / `MultiTurnGenome` / `AgenticGenome`; targets — OpenAI,
+Anthropic, **Gemini**, Ollama, Mock, and **`MCPTarget`** (drives a real MCP server over stdio);
+`Judge` (heuristic, LLM); `JailbreakFitness` / `MultiTargetFitness`; **co-evolution** (`coevolve`,
+`SystemPromptDefense`, `DefenderBlockFitness`).
 
 | Surface | Genome | Stimulus kind |
 |---------|--------|---------------|
@@ -203,8 +237,9 @@ class MyJudge(Judge):
 ## Reproducibility & conformance
 
 Seeded campaigns are deterministic and cross-language portable: the canonical PRNG
-(xoshiro256++ + SplitMix64) is cross-validated against an independent implementation, and an L1/L2/L3
-conformance suite gates engine, LLM-domain, and report behavior against golden fixtures.
+(xoshiro256++ + SplitMix64) is cross-validated against an independent implementation, and an L1–L5
+conformance suite gates engine, LLM-domain, report, multi-turn/agentic, and co-evolution behavior
+against golden fixtures, all reproduced byte-for-byte by the TypeScript package.
 
 ```bash
 pytest                                            # full suite incl. conformance

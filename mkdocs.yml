@@ -67,6 +67,7 @@ nav:
       - Judges: api/llm/judges.md
       - Fitness: api/llm/fitness.md
       - Defenses: api/llm/defense.md
+      - MCP: api/llm/mcp.md
 
 markdown_extensions:
   - pymdownx.highlight:
