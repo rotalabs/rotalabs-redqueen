@@ -21,23 +21,36 @@ from rotalabs_redqueen.core import (
     FitnessValue,
     Genome,
     Individual,
+    LexicaseSelection,
     MapElitesArchive,
+    Message,
     NoveltyArchive,
     NoveltyFitnessSelection,
     NoveltySelection,
     Population,
     PopulationConfig,
+    Report,
+    ReportExporter,
+    Rng,
     Selection,
+    Stimulus,
     SyncFitness,
+    TaxonomyLabel,
+    ToolCall,
     TournamentSelection,
+    Transcript,
     evolve,
 )
 
 # LLM adversarial testing domain
 from rotalabs_redqueen.llm import (
+    AgenticGenome,
+    AgenticStrategy,
     AnthropicTarget,
     AttackStrategy,
     Encoding,
+    Escalation,
+    GeminiTarget,
     HarmCategory,
     HeuristicJudge,
     JailbreakFitness,
@@ -49,6 +62,7 @@ from rotalabs_redqueen.llm import (
     LLMTarget,
     MockTarget,
     MultiTargetFitness,
+    MultiTurnGenome,
     NetworkError,
     OllamaTarget,
     OpenAITarget,
@@ -61,6 +75,13 @@ from rotalabs_redqueen.llm import (
 
 __all__ = [
     "__version__",
+    # Core - RNG
+    "Rng",
+    # Core - Stimulus
+    "Stimulus",
+    "Transcript",
+    "Message",
+    "ToolCall",
     # Core - Genome
     "Genome",
     "BehaviorDescriptor",
@@ -77,6 +98,7 @@ __all__ = [
     # Core - Selection
     "Selection",
     "TournamentSelection",
+    "LexicaseSelection",
     "NoveltyArchive",
     "NoveltySelection",
     "NoveltyFitnessSelection",
@@ -90,16 +112,25 @@ __all__ = [
     "EvolutionConfig",
     "EvolutionResult",
     "evolve",
+    # Core - Reporting
+    "Report",
+    "ReportExporter",
+    "TaxonomyLabel",
     # LLM - Genome
     "LLMAttackGenome",
     "AttackStrategy",
     "Encoding",
     "HarmCategory",
     "Persona",
+    "MultiTurnGenome",
+    "Escalation",
+    "AgenticGenome",
+    "AgenticStrategy",
     # LLM - Targets
     "LLMTarget",
     "OpenAITarget",
     "AnthropicTarget",
+    "GeminiTarget",
     "OllamaTarget",
     "MockTarget",
     "TargetResponse",

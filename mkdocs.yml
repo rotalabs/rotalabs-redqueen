@@ -1,5 +1,5 @@
 site_name: rotalabs-redqueen
-site_description: Evolutionary adversarial testing framework - Quality-diversity evolution for AI safety research
+site_description: Quality-diversity evolutionary red-teaming for LLMs and agents - single-turn, multi-turn, and agentic/MCP attacks
 site_url: https://rotalabs.github.io/rotalabs-redqueen/
 site_author: Rotalabs Research
 
@@ -50,12 +50,15 @@ nav:
   - API Reference:
     - Core:
       - Overview: api/core/index.md
+      - RNG: api/core/rng.md
+      - Stimulus: api/core/stimulus.md
       - Genome: api/core/genome.md
       - Fitness: api/core/fitness.md
       - Population: api/core/population.md
       - Selection: api/core/selection.md
       - Archive: api/core/archive.md
       - Evolution: api/core/evolution.md
+      - Reporting: api/core/report.md
     - LLM Domain:
       - Overview: api/llm/index.md
       - Attack Genome: api/llm/genome.md
@@ -88,4 +91,4 @@ extra:
 
 copyright: |
   <a href="https://rotalabs.ai"><img src="assets/logo-light-full.png" alt="Rotalabs" style="height: 30px; vertical-align: middle;"></a>
-  &nbsp;&copy; 2025 Rotalabs
+  &nbsp;&copy; 2026 Rotalabs

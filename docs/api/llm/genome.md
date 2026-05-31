@@ -1,23 +1,30 @@
-# Attack Genome
+# Attack Genomes
 
-LLM attack genome with strategies, personas, and encodings.
+Semantic attack genomes for each surface: single-turn, multi-turn (Crescendo-style),
+and agentic / tool-use.
 
-## LLMAttackGenome
+## LLMAttackGenome (single-turn)
 
 ::: rotalabs_redqueen.llm.genome.LLMAttackGenome
 
-## AttackStrategy
+## MultiTurnGenome
+
+::: rotalabs_redqueen.llm.genome.MultiTurnGenome
+
+## AgenticGenome
+
+::: rotalabs_redqueen.llm.genome.AgenticGenome
+
+## Enumerations
 
 ::: rotalabs_redqueen.AttackStrategy
 
-## Persona
-
-::: rotalabs_redqueen.Persona
-
-## Encoding
-
 ::: rotalabs_redqueen.Encoding
 
-## HarmCategory
-
 ::: rotalabs_redqueen.HarmCategory
+
+::: rotalabs_redqueen.llm.genome.Escalation
+
+::: rotalabs_redqueen.llm.genome.AgenticStrategy
+
+::: rotalabs_redqueen.Persona

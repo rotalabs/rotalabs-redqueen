@@ -1,6 +1,7 @@
 # Targets
 
-LLM API targets for testing.
+LLM API targets. A target executes a `Stimulus` and returns a `Transcript`;
+providers implement `_complete(messages)`.
 
 ## LLMTarget
 
@@ -13,6 +14,10 @@ LLM API targets for testing.
 ## AnthropicTarget
 
 ::: rotalabs_redqueen.AnthropicTarget
+
+## GeminiTarget
+
+::: rotalabs_redqueen.GeminiTarget
 
 ## OllamaTarget
 

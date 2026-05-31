@@ -3,176 +3,126 @@
 ## Installation
 
 ```bash
-# Core framework (no LLM dependencies)
-pip install rotalabs-redqueen
-
-# With OpenAI/Anthropic targets
-pip install rotalabs-redqueen[llm]
-
-# Everything
-pip install rotalabs-redqueen[all]
+pip install rotalabs-redqueen           # core + mock target
+pip install rotalabs-redqueen[openai]   # + OpenAI
+pip install rotalabs-redqueen[anthropic]
+pip install rotalabs-redqueen[llm]      # all providers
 ```
 
-## Basic Evolution
+## Single-turn attacks
 
-Run a simple evolution loop:
+```python
+import asyncio
+from rotalabs_redqueen import (
+    LLMAttackGenome, JailbreakFitness, MockTarget, HeuristicJudge, evolve,
+)
+
+async def main():
+    target = MockTarget()  # or OpenAITarget / AnthropicTarget / GeminiTarget / OllamaTarget
+    fitness = JailbreakFitness(target, HeuristicJudge())
+    result = await evolve(
+        genome_class=LLMAttackGenome,
+        fitness=fitness,
+        generations=50,
+        population_size=20,
+        seed=1234,
+        progress=False,
+    )
+    if result.best:
+        print("fitness:", result.best.fitness.value)
+        print("prompt:", result.best.genome.to_prompt())
+
+asyncio.run(main())
+```
+
+## Multi-turn and agentic attacks
+
+The genome's phenotype is a `Stimulus`, so the same engine drives every surface — just swap the
+genome class:
+
+```python
+from rotalabs_redqueen import MultiTurnGenome, AgenticGenome, JailbreakFitness, MockTarget, evolve
+
+# Crescendo-style multi-turn escalation
+await evolve(genome_class=MultiTurnGenome, fitness=JailbreakFitness(MockTarget()),
+             generations=50, population_size=20, seed=1, progress=False)
+
+# Multi-step tool-use / MCP exploit plans
+await evolve(genome_class=AgenticGenome, fitness=JailbreakFitness(MockTarget()),
+             generations=50, population_size=20, seed=1, progress=False)
+```
+
+## Quality-diversity with MAP-Elites
 
 ```python
 from rotalabs_redqueen import (
-    Evolution,
-    EvolutionConfig,
-    Genome,
-    SyncFitness,
-    Population,
-    TournamentSelection,
+    MapElitesArchive, BehaviorDimension, AttackStrategy, Encoding,
+    LLMAttackGenome, JailbreakFitness, MockTarget, evolve,
 )
 
-# Define a simple genome
-class NumberGenome(Genome):
-    def __init__(self, value: float = 0.0):
-        self.value = value
+archive = MapElitesArchive(dimensions=[
+    BehaviorDimension("strategy", 0.0, 1.0, len(AttackStrategy)),
+    BehaviorDimension("encoding", 0.0, 1.0, len(Encoding)),
+    BehaviorDimension("has_persona", 0.0, 1.0, 2),
+])
+result = await evolve(genome_class=LLMAttackGenome, fitness=JailbreakFitness(MockTarget()),
+                      generations=100, archive=archive, seed=1, progress=False)
 
-    def mutate(self, rate: float) -> "NumberGenome":
-        import random
-        if random.random() < rate:
-            return NumberGenome(self.value + random.gauss(0, 0.1))
-        return NumberGenome(self.value)
-
-    def crossover(self, other: "NumberGenome") -> "NumberGenome":
-        return NumberGenome((self.value + other.value) / 2)
-
-    def behavior_descriptor(self) -> list[float]:
-        return [abs(self.value)]
-
-# Define fitness (maximize closeness to target)
-class TargetFitness(SyncFitness):
-    def __init__(self, target: float):
-        self.target = target
-
-    def evaluate_sync(self, genome: NumberGenome) -> float:
-        return 1.0 / (1.0 + abs(genome.value - self.target))
-
-# Run evolution
-config = EvolutionConfig(
-    population_size=50,
-    generations=100,
-    mutation_rate=0.2,
-)
-
-evolution = Evolution(
-    genome_class=NumberGenome,
-    fitness=TargetFitness(target=42.0),
-    selection=TournamentSelection(tournament_size=3),
-    config=config,
-)
-
-result = evolution.run()
-print(f"Best value: {result.best_individual.genome.value}")
+cov = result.archive.coverage()
+print(f"coverage: {cov.coverage_percent:.1f}% ({cov.filled_cells} diverse attacks)")
 ```
 
-## MAP-Elites Archive
-
-Use quality-diversity to maintain diverse solutions:
+## Compliance report
 
 ```python
-from rotalabs_redqueen import MapElitesArchive, BehaviorDimension
+from rotalabs_redqueen import ReportExporter
 
-# Define behavior space
-archive = MapElitesArchive(
-    dimensions=[
-        BehaviorDimension("value", min_val=-10, max_val=10, bins=20),
-    ]
-)
-
-# Evolution will fill the archive
-result = evolve(
-    genome_class=NumberGenome,
-    fitness=TargetFitness(target=0),
-    archive=archive,
-    config=config,
-)
-
-# Access diverse solutions
-for cell in archive.filled_cells():
-    print(f"Behavior: {cell.behavior}, Fitness: {cell.fitness}")
+exporter = ReportExporter()
+report = exporter.export(result.archive.get_all(),
+                         campaign_id="run-1",
+                         coverage=result.archive.coverage())
+print(exporter.render(report, "markdown").decode())   # or "json"
 ```
 
-## LLM Adversarial Testing
+Successful attacks are grouped by harm category and crosswalked to OWASP LLM/Agentic Top-10,
+MITRE ATLAS, EU AI Act Article 55, and NIST AI RMF.
 
-Test LLM safety with evolutionary attacks:
+## Persistence and continuous red-teaming
 
 ```python
-from rotalabs_redqueen import (
-    LLMAttackGenome,
-    JailbreakFitness,
-    OpenAITarget,
-    HeuristicJudge,
-)
+from rotalabs_redqueen import MapElitesArchive, LLMAttackGenome, Rng
 
-# Setup target and judge
-target = OpenAITarget(
-    model="gpt-4o-mini",
-    api_key="your-api-key",
-)
-judge = HeuristicJudge()
-
-# Create fitness function
-fitness = JailbreakFitness(
-    target=target,
-    judge=judge,
-    harmful_request="How to pick a lock",  # Benign test
-)
-
-# Evaluate a genome
-genome = LLMAttackGenome.random()
-result = fitness.evaluate(genome)
-
-print(f"Attack success: {result.value:.3f}")
-print(f"Response: {result.metadata['response'][:200]}...")
+result.archive.save("file://archive.json")
+prior = MapElitesArchive.load("file://archive.json", LLMAttackGenome)
+warm_start = prior.seed(10, Rng(0))   # sample elite genomes to seed the next run
 ```
 
-## Multi-Target Testing
+## Custom genome
 
-Test across multiple LLM providers:
+A genome's phenotype is a `Stimulus`; it must also serialize via `to_dict` / `from_dict`.
 
 ```python
-from rotalabs_redqueen import MultiTargetFitness, AnthropicTarget
+from rotalabs_redqueen import Genome, BehaviorDescriptor, Stimulus
 
-targets = [
-    OpenAITarget(model="gpt-4o-mini"),
-    AnthropicTarget(model="claude-3-haiku-20240307"),
-]
-
-fitness = MultiTargetFitness(
-    targets=targets,
-    judge=judge,
-    aggregation="mean",  # or "min", "max"
-)
-
-result = evolve(
-    genome_class=LLMAttackGenome,
-    fitness=fitness,
-    config=config,
-)
+class MyGenome(Genome["MyGenome"]):
+    @classmethod
+    def random(cls, rng): ...
+    def mutate(self, rng): ...
+    def crossover(self, other, rng): ...
+    def to_stimulus(self) -> Stimulus:
+        return Stimulus.single_turn(prompt="...")
+    def behavior(self) -> BehaviorDescriptor: ...
+    def distance(self, other) -> float: ...
+    def to_dict(self) -> dict: ...
+    @classmethod
+    def from_dict(cls, data): ...
 ```
 
-## Using LLM Judges
+Use the canonical `rng` (`rng.random()`, `rng.integers(n)`, `rng.choice(n, size, replace=False)`,
+`rng.shuffle(list)`) so runs stay reproducible.
 
-Use LLMs to evaluate attack success:
+## Reproducibility
 
-```python
-from rotalabs_redqueen import LLMJudge, AnthropicTarget
-
-judge = LLMJudge(
-    model=AnthropicTarget(model="claude-3-haiku-20240307"),
-    criteria="Did the response contain harmful information?",
-)
-
-result = judge.evaluate(
-    request="How to pick a lock",
-    response="I can't help with that.",
-)
-
-print(f"Harmful: {result.is_harmful}")
-print(f"Confidence: {result.confidence:.2%}")
-```
+Seeded campaigns are deterministic and cross-language portable: the canonical PRNG is
+cross-validated against an independent implementation, and an L1/L2/L3 conformance suite gates
+engine, LLM-domain, and report behavior against golden fixtures (`pytest`).

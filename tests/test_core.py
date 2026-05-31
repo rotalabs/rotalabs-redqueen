@@ -13,8 +13,11 @@ from rotalabs_redqueen.core import (
     FitnessValue,
     Genome,
     Individual,
+    LexicaseSelection,
     MapElitesArchive,
     Population,
+    Rng,
+    Stimulus,
     TournamentSelection,
 )
 
@@ -29,29 +32,36 @@ class SimpleGenome(Genome["SimpleGenome"]):
     @classmethod
     def random(cls, rng=None):
         if rng is None:
-            rng = np.random.default_rng()
+            rng = Rng()
         return cls(rng.random())
 
     def mutate(self, rng=None):
         if rng is None:
-            rng = np.random.default_rng()
-        delta = rng.normal(0, 0.1)
+            rng = Rng()
+        delta = rng.uniform(-0.1, 0.1)
         return SimpleGenome(max(0, min(1, self.value + delta)))
 
     def crossover(self, other: "SimpleGenome", rng=None):
         if rng is None:
-            rng = np.random.default_rng()
+            rng = Rng()
         alpha = rng.random()
         return SimpleGenome(alpha * self.value + (1 - alpha) * other.value)
 
-    def to_phenotype(self):
-        return str(self.value)
+    def to_stimulus(self):
+        return Stimulus.single_turn(str(self.value))
 
     def behavior(self):
         return BehaviorDescriptor((self.value,))
 
     def distance(self, other: "SimpleGenome") -> float:
         return abs(self.value - other.value)
+
+    def to_dict(self):
+        return {"value": self.value}
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(data["value"])
 
 
 class SimpleFitness(Fitness[SimpleGenome]):
@@ -98,12 +108,12 @@ class TestPopulation:
     """Tests for Population."""
 
     def test_random_creation(self):
-        rng = np.random.default_rng(42)
+        rng = Rng(42)
         pop = Population.random(SimpleGenome, 10, rng)
         assert len(pop) == 10
 
     def test_best(self):
-        rng = np.random.default_rng(42)
+        rng = Rng(42)
         pop = Population.random(SimpleGenome, 10, rng)
         # Manually set fitness
         for i, ind in enumerate(pop):
@@ -117,7 +127,7 @@ class TestTournamentSelection:
     """Tests for TournamentSelection."""
 
     def test_selection(self):
-        rng = np.random.default_rng(42)
+        rng = Rng(42)
         pop = Population.random(SimpleGenome, 20, rng)
         for i, ind in enumerate(pop):
             ind.fitness = FitnessValue(float(i) / 20)
@@ -201,3 +211,31 @@ class TestEvolution:
         assert result.archive is not None
         coverage = result.archive.coverage()
         assert coverage.filled_cells > 0
+
+
+class TestLexicaseSelection:
+    """Tests for LexicaseSelection."""
+
+    def _multiobjective_pop(self):
+        pop = Population.random(SimpleGenome, 6, Rng(1))
+        objs = [(1.0, 0.0), (0.0, 1.0), (0.5, 0.5), (0.9, 0.1), (0.1, 0.9), (0.2, 0.2)]
+        for ind, o in zip(pop, objs):
+            ind.fitness = FitnessValue(value=sum(o) / 2, objectives=o)
+        return pop, objs
+
+    def test_selects_case_winners(self):
+        pop, objs = self._multiobjective_pop()
+        best0 = max(o[0] for o in objs)
+        best1 = max(o[1] for o in objs)
+        chosen = LexicaseSelection().select(pop, n=12, rng=Rng(7))
+        assert len(chosen) == 12
+        # A lexicase winner is best on at least the first case in its ordering.
+        for ind in chosen:
+            o = ind.fitness.objectives
+            assert o[0] == best0 or o[1] == best1
+
+    def test_deterministic(self):
+        pop, _ = self._multiobjective_pop()
+        a = [id(i) for i in LexicaseSelection().select(pop, 12, Rng(7))]
+        b = [id(i) for i in LexicaseSelection().select(pop, 12, Rng(7))]
+        assert a == b

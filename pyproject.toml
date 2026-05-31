@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "rotalabs-redqueen"
-version = "1.0.0"
-description = "Evolutionary adversarial testing framework - Quality-diversity evolution for AI safety research"
+version = "2.0.0"
+description = "Quality-diversity evolutionary red-teaming for LLMs and agents - single-turn, multi-turn, and agentic/MCP attacks"
 readme = "README.md"
 license = "AGPL-3.0-or-later"
 requires-python = ">=3.9"
@@ -34,6 +34,9 @@ keywords = [
     "ai-safety",
     "red-teaming",
     "llm-security",
+    "agentic",
+    "mcp",
+    "multi-turn",
 ]
 
 dependencies = [

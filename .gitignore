@@ -8,3 +8,6 @@ __pycache__/
 # mkdocs build
 site/
 .coverage
+
+.pytest_cache/
+.ruff_cache/

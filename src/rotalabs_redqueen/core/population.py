@@ -13,6 +13,7 @@ import numpy as np
 
 from rotalabs_redqueen.core.fitness import FitnessResult, FitnessValue
 from rotalabs_redqueen.core.genome import BehaviorDescriptor, Genome
+from rotalabs_redqueen.core.rng import Rng
 
 G = TypeVar("G", bound=Genome)
 
@@ -97,7 +98,7 @@ class Population(Generic[G]):
         cls,
         genome_class: type[G],
         size: int,
-        rng: np.random.Generator | None = None,
+        rng: Rng | None = None,
     ) -> Population[G]:
         """Create a population of random individuals.
 
@@ -109,9 +110,7 @@ class Population(Generic[G]):
         Returns:
             New population with random genomes (unevaluated)
         """
-        individuals = [
-            Individual(genome=genome_class.random(rng)) for _ in range(size)
-        ]
+        individuals = [Individual(genome=genome_class.random(rng)) for _ in range(size)]
         return cls(individuals=individuals, config=PopulationConfig(size=size))
 
     def __len__(self) -> int:
@@ -151,7 +150,7 @@ class Population(Generic[G]):
     def tournament_select(
         self,
         tournament_size: int = 3,
-        rng: np.random.Generator | None = None,
+        rng: Rng | None = None,
     ) -> Individual[G]:
         """Select an individual via tournament selection.
 
@@ -163,7 +162,7 @@ class Population(Generic[G]):
             Winner of tournament (best fitness)
         """
         if rng is None:
-            rng = np.random.default_rng()
+            rng = Rng()
 
         indices = rng.choice(len(self.individuals), size=tournament_size, replace=False)
         contestants = [self.individuals[i] for i in indices]
@@ -173,7 +172,7 @@ class Population(Generic[G]):
         self,
         n: int,
         tournament_size: int = 3,
-        rng: np.random.Generator | None = None,
+        rng: Rng | None = None,
     ) -> list[Individual[G]]:
         """Select N parents via tournament selection.
 
@@ -212,7 +211,7 @@ class Population(Generic[G]):
         total = 0.0
         count = 0
         for i, ind1 in enumerate(self.individuals):
-            for ind2 in self.individuals[i + 1:]:
+            for ind2 in self.individuals[i + 1 :]:
                 total += ind1.behavior.distance(ind2.behavior)
                 count += 1
 

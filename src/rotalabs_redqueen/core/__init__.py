@@ -25,15 +25,27 @@ from rotalabs_redqueen.core.fitness import (
 )
 from rotalabs_redqueen.core.genome import BehaviorDescriptor, Genome
 from rotalabs_redqueen.core.population import Individual, Population, PopulationConfig
+from rotalabs_redqueen.core.report import Report, ReportExporter
+from rotalabs_redqueen.core.rng import Rng
 from rotalabs_redqueen.core.selection import (
+    LexicaseSelection,
     NoveltyArchive,
     NoveltyFitnessSelection,
     NoveltySelection,
     Selection,
     TournamentSelection,
 )
+from rotalabs_redqueen.core.stimulus import Message, Stimulus, ToolCall, Transcript
+from rotalabs_redqueen.core.taxonomy import TaxonomyLabel
 
 __all__ = [
+    # RNG
+    "Rng",
+    # Stimulus
+    "Stimulus",
+    "Transcript",
+    "Message",
+    "ToolCall",
     # Genome
     "Genome",
     "BehaviorDescriptor",
@@ -50,6 +62,7 @@ __all__ = [
     # Selection
     "Selection",
     "TournamentSelection",
+    "LexicaseSelection",
     "NoveltyArchive",
     "NoveltySelection",
     "NoveltyFitnessSelection",
@@ -63,4 +76,8 @@ __all__ = [
     "EvolutionConfig",
     "EvolutionResult",
     "evolve",
+    # Reporting
+    "Report",
+    "ReportExporter",
+    "TaxonomyLabel",
 ]

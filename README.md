@@ -1,261 +1,225 @@
 # rotalabs-redqueen
 
-Evolutionary adversarial testing framework for LLMs from [Rotalabs](https://rotalabs.ai).
+Quality-diversity evolutionary red-teaming for LLMs **and agents**, from [Rotalabs](https://rotalabs.ai).
 
-Quality-diversity evolution for automated red-teaming and AI safety research.
+Rather than hand-crafting jailbreaks, rotalabs-redqueen *evolves* diverse, effective attack
+strategies and maps the vulnerability space with MAP-Elites. It operates at the **semantic level**
+and spans the full 2026 attack surface:
 
-## Overview
+- **Single-turn** prompt attacks (strategies, encodings, personas)
+- **Multi-turn** Crescendo-style escalation
+- **Agentic / tool-use / MCP** multi-step exploit plans
 
-rotalabs-redqueen uses evolutionary algorithms to discover diverse, effective adversarial attacks against language models. Rather than manually crafting jailbreaks, it evolves attack strategies using:
+Seeded runs are **bit-reproducible** (and cross-language portable), and a campaign can be projected
+into an **audit-ready compliance report** (OWASP, MITRE ATLAS, EU AI Act Art. 55, NIST AI RMF).
 
-- **Genetic Algorithms** - Standard evolutionary optimization
-- **MAP-Elites** - Quality-diversity to find diverse successful attacks
-- **Novelty Search** - Reward novel behaviors, not just fitness
-
-The framework operates at the **semantic level** - evolving attack strategies, encodings, and personas rather than raw tokens.
+> **2.0 is a breaking release.** See [`CHANGELOG.md`](CHANGELOG.md) for migration from 1.x.
 
 ## Installation
 
 ```bash
-# Core package (includes mock target for testing)
-pip install rotalabs-redqueen
-
-# With OpenAI support
-pip install rotalabs-redqueen[openai]
-
-# With Anthropic support
+pip install rotalabs-redqueen           # core + mock target
+pip install rotalabs-redqueen[openai]   # + OpenAI
 pip install rotalabs-redqueen[anthropic]
-
-# All LLM providers
-pip install rotalabs-redqueen[llm]
-
-# Development
-pip install rotalabs-redqueen[dev]
+pip install rotalabs-redqueen[llm]      # all providers
+pip install rotalabs-redqueen[dev]      # tests/lint
 ```
 
-## Quick Start
-
-### Python API
+## Quick start
 
 ```python
 import asyncio
 from rotalabs_redqueen import (
-    LLMAttackGenome,
-    JailbreakFitness,
-    MockTarget,
-    HeuristicJudge,
-    evolve,
+    LLMAttackGenome, JailbreakFitness, MockTarget, HeuristicJudge, evolve,
 )
 
 async def main():
-    # Create target and fitness function
-    target = MockTarget()  # Use OpenAITarget or AnthropicTarget for real tests
+    target = MockTarget()  # swap for OpenAITarget / AnthropicTarget / GeminiTarget / OllamaTarget
     fitness = JailbreakFitness(target, HeuristicJudge())
 
-    # Run evolution
     result = await evolve(
         genome_class=LLMAttackGenome,
         fitness=fitness,
         generations=50,
         population_size=20,
+        seed=1234,            # same seed -> same result, every time
+        progress=False,
     )
 
-    # Examine results
     if result.best:
-        print(f"Best fitness: {result.best.fitness.value}")
-        print(f"Best prompt: {result.best.genome.to_prompt()}")
+        print("fitness:", result.best.fitness.value)
+        print("prompt:", result.best.genome.to_prompt())
 
 asyncio.run(main())
 ```
 
-### Quality-Diversity with MAP-Elites
+## Multi-turn and agentic attacks
+
+The genome's phenotype is a `Stimulus` — a single prompt, a conversation, or an agentic action
+plan — so the *same engine* drives every surface. Just swap the genome class:
+
+```python
+from rotalabs_redqueen import MultiTurnGenome, AgenticGenome, JailbreakFitness, MockTarget, evolve
+
+# Crescendo-style multi-turn escalation
+mt = await evolve(genome_class=MultiTurnGenome,
+                  fitness=JailbreakFitness(MockTarget()),
+                  generations=50, population_size=20, seed=1, progress=False)
+
+# Multi-step tool-use / MCP exploit plans
+ag = await evolve(genome_class=AgenticGenome,
+                  fitness=JailbreakFitness(MockTarget()),
+                  generations=50, population_size=20, seed=1, progress=False)
+```
+
+## Quality-diversity with MAP-Elites
 
 ```python
 from rotalabs_redqueen import (
-    LLMAttackGenome,
-    JailbreakFitness,
-    MockTarget,
-    MapElitesArchive,
-    BehaviorDimension,
-    AttackStrategy,
-    Encoding,
-    evolve,
+    LLMAttackGenome, JailbreakFitness, MockTarget,
+    MapElitesArchive, BehaviorDimension, AttackStrategy, Encoding, evolve,
 )
 
-async def main():
-    target = MockTarget()
-    fitness = JailbreakFitness(target)
+archive = MapElitesArchive(dimensions=[
+    BehaviorDimension("strategy", 0.0, 1.0, len(AttackStrategy)),
+    BehaviorDimension("encoding", 0.0, 1.0, len(Encoding)),
+    BehaviorDimension("has_persona", 0.0, 1.0, 2),
+])
+result = await evolve(genome_class=LLMAttackGenome,
+                      fitness=JailbreakFitness(MockTarget()),
+                      generations=100, archive=archive, seed=1, progress=False)
 
-    # Create archive to track diverse solutions
-    archive = MapElitesArchive(
-        dimensions=[
-            BehaviorDimension("strategy", 0.0, 1.0, len(AttackStrategy)),
-            BehaviorDimension("encoding", 0.0, 1.0, len(Encoding)),
-            BehaviorDimension("has_persona", 0.0, 1.0, 2),
-        ]
-    )
-
-    result = await evolve(
-        genome_class=LLMAttackGenome,
-        fitness=fitness,
-        generations=100,
-        archive=archive,
-    )
-
-    # Check archive coverage
-    coverage = result.archive.coverage()
-    print(f"Archive coverage: {coverage.coverage_percent:.1f}%")
-    print(f"Diverse solutions: {coverage.filled_cells}")
+cov = result.archive.coverage()
+print(f"coverage: {cov.coverage_percent:.1f}% ({cov.filled_cells} diverse attacks)")
 ```
 
-### Command Line Interface
+## Compliance report
+
+Project the archive over the attack taxonomy into standards-aligned evidence:
+
+```python
+from rotalabs_redqueen import ReportExporter
+
+exporter = ReportExporter()
+report = exporter.export(result.archive.get_all(),
+                         campaign_id="run-1",
+                         coverage=result.archive.coverage())
+print(exporter.render(report, "markdown").decode())   # or "json"
+```
+
+The report groups successful attacks by harm category and crosswalks them to OWASP LLM/Agentic
+Top-10, MITRE ATLAS, EU AI Act Article 55, and NIST AI RMF GOVERN 1.7.
+
+## Persistence and continuous red-teaming
+
+Archives serialize, so attacks accumulate across runs (e.g. a CI gate that gets stronger over time):
+
+```python
+from rotalabs_redqueen import MapElitesArchive, LLMAttackGenome, Rng
+
+result.archive.save("file://archive.json")
+
+prior = MapElitesArchive.load("file://archive.json", LLMAttackGenome)
+warm_start = prior.seed(10, Rng(0))   # sample elite genomes to seed the next run
+```
+
+## Command line
 
 ```bash
-# Run a test campaign with mock target
-rotalabs-redqueen run --target mock:random --generations 20
-
-# Run against OpenAI (requires OPENAI_API_KEY)
-rotalabs-redqueen run --target openai:gpt-4 --generations 50
-
-# Use MAP-Elites for diverse attacks
-rotalabs-redqueen run --target mock:random --use-archive
-
-# Use LLM judge for more accurate evaluation
+rotalabs-redqueen run --target mock:random --generations 20 --seed 1
+rotalabs-redqueen run --target openai:gpt-4 --use-archive --output results.json
 rotalabs-redqueen run --target mock:random --llm-judge anthropic:claude-sonnet-4-20250514
-
-# Save results to file
-rotalabs-redqueen run --target mock:random --output results.json
-
-# Show available options
-rotalabs-redqueen info --strategies
-rotalabs-redqueen info --encodings
-rotalabs-redqueen info --targets
+rotalabs-redqueen info --strategies | --encodings | --targets
 ```
 
 ## Architecture
 
-### Core Framework
+**Core framework** (generic, reusable for any QD problem): `Genome`, `Fitness`, `Population`,
+`Selection` (tournament / novelty / **lexicase**), `MapElitesArchive`, `Evolution`, and the
+canonical `Rng`.
 
-The core evolutionary framework is generic and can be used for any optimization problem:
+**LLM domain**: `LLMAttackGenome` / `MultiTurnGenome` / `AgenticGenome`; `LLMTarget`
+(OpenAI, Anthropic, **Gemini**, Ollama, Mock); `Judge` (heuristic, LLM); `JailbreakFitness` /
+`MultiTargetFitness`.
 
-- **Genome** - Abstract base for evolvable representations
-- **Fitness** - Async fitness evaluation
-- **Population** - Collection of individuals with selection
-- **Selection** - Tournament, novelty, and hybrid selection
-- **Archive** - MAP-Elites quality-diversity archive
-- **Evolution** - Main evolutionary loop
-
-### LLM Domain
-
-The LLM domain provides specialized components for adversarial testing:
-
-- **LLMAttackGenome** - Attack representation with strategies, encodings, personas
-- **LLMTarget** - Unified interface for OpenAI, Anthropic, Ollama, etc.
-- **Judge** - Evaluate attack success (heuristic or LLM-based)
-- **JailbreakFitness** - Fitness function combining target and judge
-
-## Attack Strategies
-
-| Strategy | Description |
-|----------|-------------|
-| `ROLEPLAY` | Assume a character/persona (e.g., DAN) |
-| `ENCODING` | Obfuscate the request (base64, rot13, etc.) |
-| `AUTHORITY` | Claim special permissions |
-| `HYPOTHETICAL` | Frame as fictional/educational |
-| `MULTI_TURN` | Build up through conversation |
-| `DIRECT` | Direct jailbreak attempt |
-
-## Encodings
-
-| Encoding | Description |
-|----------|-------------|
-| `NONE` | No encoding |
-| `BASE64` | Base64 encoding |
-| `ROT13` | ROT13 cipher |
-| `LEETSPEAK` | L33t sp34k |
-| `PIG_LATIN` | Pig Latin |
-| `REVERSE` | Reversed text |
+| Surface | Genome | Stimulus kind |
+|---------|--------|---------------|
+| Single-turn | `LLMAttackGenome` | `single_turn` |
+| Multi-turn | `MultiTurnGenome` | `multi_turn` |
+| Agentic / MCP | `AgenticGenome` | `agentic` |
 
 ## Extending
 
-### Custom Genomes
+### Custom genome
 
 ```python
-from rotalabs_redqueen import Genome, BehaviorDescriptor
+from rotalabs_redqueen import Genome, BehaviorDescriptor, Stimulus
 
 class MyGenome(Genome["MyGenome"]):
     @classmethod
-    def random(cls, rng=None):
-        # Create random genome
-        ...
-
-    def mutate(self, rng=None):
-        # Return mutated copy
-        ...
-
-    def crossover(self, other, rng=None):
-        # Return offspring
-        ...
-
-    def to_phenotype(self):
-        # Convert to evaluable form
-        ...
-
-    def behavior(self):
-        # Return behavior descriptor for QD
-        return BehaviorDescriptor((dim1, dim2, ...))
+    def random(cls, rng): ...
+    def mutate(self, rng): ...
+    def crossover(self, other, rng): ...
+    def to_stimulus(self) -> Stimulus:
+        return Stimulus.single_turn(prompt="...")
+    def behavior(self) -> BehaviorDescriptor: ...
+    def distance(self, other) -> float: ...
+    def to_dict(self) -> dict: ...
+    @classmethod
+    def from_dict(cls, data) -> "MyGenome": ...
 ```
 
-### Custom Fitness Functions
+`rng` is the canonical `Rng` — use `rng.random()`, `rng.integers(n)`, `rng.choice(n, size, replace=False)`,
+`rng.shuffle(list)` so runs stay reproducible.
+
+### Custom target
 
 ```python
-from rotalabs_redqueen import Fitness, FitnessResult, FitnessValue
-
-class MyFitness(Fitness[MyGenome]):
-    async def evaluate(self, genome):
-        # Evaluate genome
-        score = compute_score(genome.to_phenotype())
-        return FitnessResult(
-            fitness=FitnessValue(score),
-            behavior=genome.behavior(),
-        )
-```
-
-### Custom Targets
-
-```python
-from rotalabs_redqueen import LLMTarget, TargetResponse
+from rotalabs_redqueen import LLMTarget, Message, TargetResponse
 
 class MyTarget(LLMTarget):
     @property
-    def name(self):
+    def name(self) -> str:
         return "my-target"
 
-    async def query(self, prompt):
-        # Query your LLM
-        response = await my_llm_api(prompt)
-        return TargetResponse(
-            content=response.text,
-            model="my-model",
-            tokens_used=response.tokens,
-        )
+    async def _complete(self, messages: list[Message]) -> TargetResponse:
+        text = await my_llm_api([{"role": m.role, "content": m.content} for m in messages])
+        return TargetResponse(content=text, model="my-model")
 ```
 
-## Use Cases
+`interact()` (single-turn + scripted multi-turn rollout) is provided by the base class.
 
-- **Red-teaming**: Discover vulnerabilities in LLM safety measures
-- **Defense testing**: Validate content filters and guardrails
-- **Research**: Study attack patterns and defenses systematically
-- **Benchmarking**: Compare robustness across models
+### Custom judge
 
-## Responsible Use
+```python
+from rotalabs_redqueen import Judge, JudgeResult
 
-This tool is intended for **defensive security research** - testing and improving the safety of AI systems you own or have permission to test.
+class MyJudge(Judge):
+    async def judge(self, stimulus, transcript) -> JudgeResult:
+        score = my_score(transcript.assistant_text)
+        return JudgeResult(success=score >= 0.5, score=score)
+```
 
-**Do not use this tool to:**
-- Attack systems without authorization
-- Generate harmful content for malicious purposes
-- Circumvent safety measures of production systems
+## Reproducibility & conformance
+
+Seeded campaigns are deterministic and cross-language portable: the canonical PRNG
+(xoshiro256++ + SplitMix64) is cross-validated against an independent implementation, and an L1/L2/L3
+conformance suite gates engine, LLM-domain, and report behavior against golden fixtures.
+
+```bash
+pytest                                            # full suite incl. conformance
+python -m rotalabs_redqueen._gen_conformance      # regenerate golden fixtures (intentional changes only)
+```
+
+## Use cases
+
+Red-teaming, guardrail/defense testing, robustness benchmarking, and documented adversarial-testing
+evidence for compliance.
+
+## Responsible use
+
+For **defensive security research** — testing systems you own or are authorized to test. Do not use
+it to attack systems without authorization or to circumvent the safety of production systems.
 
 ## Links
 

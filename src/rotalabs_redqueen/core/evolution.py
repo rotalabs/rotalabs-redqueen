@@ -8,13 +8,13 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Generic, TypeVar
 
-import numpy as np
 from tqdm import tqdm
 
 from rotalabs_redqueen.core.archive import Archive
 from rotalabs_redqueen.core.fitness import Fitness, FitnessResult
 from rotalabs_redqueen.core.genome import Genome
 from rotalabs_redqueen.core.population import Individual, Population
+from rotalabs_redqueen.core.rng import Rng
 from rotalabs_redqueen.core.selection import Selection, TournamentSelection
 
 G = TypeVar("G", bound=Genome)
@@ -71,7 +71,7 @@ class Evolution(Generic[G]):
         self.config = config or EvolutionConfig()
         self.selection = selection or TournamentSelection(self.config.tournament_size)
         self.archive = archive
-        self.rng = np.random.default_rng(self.config.seed)
+        self.rng = Rng(self.config.seed)
 
     async def run(
         self,
@@ -120,8 +120,7 @@ class Evolution(Generic[G]):
 
             # Create offspring individuals
             offspring_inds = [
-                Individual.from_result(g, r, generation=gen + 1)
-                for g, r in zip(offspring, results)
+                Individual.from_result(g, r, generation=gen + 1) for g, r in zip(offspring, results)
             ]
 
             # Update archive if using QD
@@ -153,16 +152,12 @@ class Evolution(Generic[G]):
             history=history,
         )
 
-    async def _evaluate_population(
-        self, population: Population[G]
-    ) -> list[FitnessResult]:
+    async def _evaluate_population(self, population: Population[G]) -> list[FitnessResult]:
         """Evaluate all individuals in population."""
         genomes = [ind.genome for ind in population]
         return await self.fitness.evaluate_batch(genomes)
 
-    async def _evaluate_population_from_genomes(
-        self, genomes: list[G]
-    ) -> list[FitnessResult]:
+    async def _evaluate_population_from_genomes(self, genomes: list[G]) -> list[FitnessResult]:
         """Evaluate a list of genomes."""
         return await self.fitness.evaluate_batch(genomes)
 

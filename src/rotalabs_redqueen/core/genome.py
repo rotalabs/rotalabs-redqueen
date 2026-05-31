@@ -12,6 +12,9 @@ from typing import Generic, TypeVar
 
 import numpy as np
 
+from rotalabs_redqueen.core.rng import Rng
+from rotalabs_redqueen.core.stimulus import Stimulus
+
 T = TypeVar("T", bound="Genome")
 
 
@@ -45,13 +48,13 @@ class Genome(ABC, Generic[T]):
     - random(): Create a random genome
     - mutate(): Create a mutated copy
     - crossover(): Combine with another genome
-    - to_phenotype(): Convert to evaluatable form
+    - to_stimulus(): Convert to the Stimulus a Target executes
     - behavior(): Extract behavior descriptor for QD
     """
 
     @classmethod
     @abstractmethod
-    def random(cls, rng: np.random.Generator | None = None) -> T:
+    def random(cls, rng: Rng | None = None) -> T:
         """Create a random genome instance.
 
         Args:
@@ -63,7 +66,7 @@ class Genome(ABC, Generic[T]):
         pass
 
     @abstractmethod
-    def mutate(self, rng: np.random.Generator | None = None) -> T:
+    def mutate(self, rng: Rng | None = None) -> T:
         """Create a mutated copy of this genome.
 
         Args:
@@ -75,7 +78,7 @@ class Genome(ABC, Generic[T]):
         pass
 
     @abstractmethod
-    def crossover(self, other: T, rng: np.random.Generator | None = None) -> T:
+    def crossover(self, other: T, rng: Rng | None = None) -> T:
         """Create offspring by combining with another genome.
 
         Args:
@@ -88,13 +91,14 @@ class Genome(ABC, Generic[T]):
         pass
 
     @abstractmethod
-    def to_phenotype(self) -> str:
-        """Convert genome to evaluatable phenotype.
+    def to_stimulus(self) -> Stimulus:
+        """Convert genome to the Stimulus a Target executes.
 
-        For LLM attacks, this produces the actual prompt text.
+        May be a single prompt, a multi-turn conversation, or an agentic
+        action plan (see :mod:`rotalabs_redqueen.core.stimulus`).
 
         Returns:
-            String representation for evaluation
+            The Stimulus phenotype for evaluation.
         """
         pass
 
@@ -105,6 +109,21 @@ class Genome(ABC, Generic[T]):
         Returns:
             Behavior descriptor characterizing this genome
         """
+        pass
+
+    @abstractmethod
+    def to_dict(self) -> dict:
+        """Serialize the genome to a JSON-compatible dict.
+
+        Must round-trip via :meth:`from_dict`. This is how archives persist
+        genomes for cross-run continuity.
+        """
+        pass
+
+    @classmethod
+    @abstractmethod
+    def from_dict(cls, data: dict) -> T:
+        """Reconstruct a genome from :meth:`to_dict` output."""
         pass
 
     def distance(self, other: T) -> float:

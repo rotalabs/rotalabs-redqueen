@@ -10,10 +10,14 @@ from rotalabs_redqueen.llm.fitness import (
     MultiTargetFitness,
 )
 from rotalabs_redqueen.llm.genome import (
+    AgenticGenome,
+    AgenticStrategy,
     AttackStrategy,
     Encoding,
+    Escalation,
     HarmCategory,
     LLMAttackGenome,
+    MultiTurnGenome,
     Persona,
 )
 from rotalabs_redqueen.llm.judge import (
@@ -24,6 +28,7 @@ from rotalabs_redqueen.llm.judge import (
 )
 from rotalabs_redqueen.llm.targets import (
     AnthropicTarget,
+    GeminiTarget,
     LLMTarget,
     MockTarget,
     NetworkError,
@@ -42,10 +47,15 @@ __all__ = [
     "Encoding",
     "HarmCategory",
     "Persona",
+    "MultiTurnGenome",
+    "Escalation",
+    "AgenticGenome",
+    "AgenticStrategy",
     # Targets
     "LLMTarget",
     "OpenAITarget",
     "AnthropicTarget",
+    "GeminiTarget",
     "OllamaTarget",
     "MockTarget",
     "TargetResponse",

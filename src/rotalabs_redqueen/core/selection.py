@@ -10,10 +10,9 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Generic, TypeVar
 
-import numpy as np
-
 from rotalabs_redqueen.core.genome import BehaviorDescriptor, Genome
 from rotalabs_redqueen.core.population import Individual, Population
+from rotalabs_redqueen.core.rng import Rng
 
 G = TypeVar("G", bound=Genome)
 
@@ -26,7 +25,7 @@ class Selection(ABC, Generic[G]):
         self,
         population: Population[G],
         n: int,
-        rng: np.random.Generator | None = None,
+        rng: Rng | None = None,
     ) -> list[Individual[G]]:
         """Select N individuals from the population.
 
@@ -60,7 +59,7 @@ class TournamentSelection(Selection[G], Generic[G]):
         self,
         population: Population[G],
         n: int,
-        rng: np.random.Generator | None = None,
+        rng: Rng | None = None,
     ) -> list[Individual[G]]:
         """Select N individuals via tournament."""
         return population.select_parents(n, self.tournament_size, rng)
@@ -95,7 +94,7 @@ class NoveltyArchive(Generic[G]):
             self.behaviors.append(behavior)
             # Trim if too large
             if len(self.behaviors) > self.max_size:
-                self.behaviors = self.behaviors[-self.max_size:]
+                self.behaviors = self.behaviors[-self.max_size :]
 
     def compute_novelty(self, behavior: BehaviorDescriptor) -> float:
         """Compute novelty score for a behavior.
@@ -139,7 +138,7 @@ class NoveltySelection(Selection[G], Generic[G]):
         self,
         population: Population[G],
         n: int,
-        rng: np.random.Generator | None = None,
+        rng: Rng | None = None,
     ) -> list[Individual[G]]:
         """Select N most novel individuals."""
         # Score all individuals by novelty
@@ -186,7 +185,7 @@ class NoveltyFitnessSelection(Selection[G], Generic[G]):
         self,
         population: Population[G],
         n: int,
-        rng: np.random.Generator | None = None,
+        rng: Rng | None = None,
     ) -> list[Individual[G]]:
         """Select based on combined novelty and fitness score."""
         # Score all individuals
@@ -204,9 +203,7 @@ class NoveltyFitnessSelection(Selection[G], Generic[G]):
         for ind, novelty in zip(population, novelty_scores):
             norm_fitness = ind.fitness.value / max_fitness
             norm_novelty = novelty / max_novelty
-            combined = (
-                self.fitness_weight * norm_fitness + self.novelty_weight * norm_novelty
-            )
+            combined = self.fitness_weight * norm_fitness + self.novelty_weight * norm_novelty
             scored.append((ind, combined))
 
         # Sort by combined score
@@ -218,3 +215,57 @@ class NoveltyFitnessSelection(Selection[G], Generic[G]):
             self.archive.add(ind.behavior)
 
         return selected
+
+
+class LexicaseSelection(Selection[G], Generic[G]):
+    """Lexicase selection over objective "cases".
+
+    For each parent, the objective indices are considered in a random order; at
+    each step only the individuals that are (near-)best on that objective
+    survive, until one remains. Intended for multi-objective fitness (e.g.
+    per-target scores from a multi-objective fitness); with single-objective
+    fitness it reduces to repeatedly selecting the best (ties broken at random).
+    """
+
+    def __init__(self, epsilon: float = 0.0):
+        """Initialize lexicase selection.
+
+        Args:
+            epsilon: Tolerance for treating scores as tied on a case
+                (an individual survives a case if its score >= best - epsilon).
+        """
+        self.epsilon = epsilon
+
+    @staticmethod
+    def _cases(ind: Individual[G]) -> tuple[float, ...]:
+        objectives = ind.fitness.objectives
+        if objectives is None:
+            return (ind.fitness.value,)
+        return objectives
+
+    def select(
+        self,
+        population: Population[G],
+        n: int,
+        rng: Rng | None = None,
+    ) -> list[Individual[G]]:
+        """Select N parents via lexicase selection."""
+        if rng is None:
+            rng = Rng()
+        individuals = list(population)
+        if not individuals:
+            return []
+        return [self._select_one(individuals, rng) for _ in range(n)]
+
+    def _select_one(self, individuals: list[Individual[G]], rng: Rng) -> Individual[G]:
+        candidates = list(individuals)
+        cases = list(range(len(self._cases(candidates[0]))))
+        rng.shuffle(cases)
+        for case in cases:
+            if len(candidates) == 1:
+                break
+            best = max(self._cases(c)[case] for c in candidates)
+            candidates = [c for c in candidates if self._cases(c)[case] >= best - self.epsilon]
+        if len(candidates) == 1:
+            return candidates[0]
+        return candidates[rng.below(len(candidates))]

@@ -6,12 +6,17 @@ MAP-Elites is the primary implementation.
 
 from __future__ import annotations
 
+import json
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Generic, TypeVar
 
+from rotalabs_redqueen.core.canonical import canonical_json
+from rotalabs_redqueen.core.fitness import FitnessValue
 from rotalabs_redqueen.core.genome import BehaviorDescriptor, Genome
 from rotalabs_redqueen.core.population import Individual
+from rotalabs_redqueen.core.stimulus import SPEC_VERSION
 
 G = TypeVar("G", bound=Genome)
 
@@ -111,12 +116,9 @@ class MapElitesArchive(Archive[G], Generic[G]):
         """
         if len(behavior) != len(self.dimensions):
             raise ValueError(
-                f"Behavior has {len(behavior)} dimensions, "
-                f"archive has {len(self.dimensions)}"
+                f"Behavior has {len(behavior)} dimensions, archive has {len(self.dimensions)}"
             )
-        return tuple(
-            dim.get_bin(behavior[i]) for i, dim in enumerate(self.dimensions)
-        )
+        return tuple(dim.get_bin(behavior[i]) for i, dim in enumerate(self.dimensions))
 
     def add(self, individual: Individual[G]) -> bool:
         """Try to add an individual to the archive.
@@ -176,10 +178,10 @@ class MapElitesArchive(Archive[G], Generic[G]):
         Returns:
             List of sampled individuals
         """
-        import numpy as np
+        from rotalabs_redqueen.core.rng import Rng
 
         if rng is None:
-            rng = np.random.default_rng()
+            rng = Rng()
 
         individuals = self.get_all()
         if len(individuals) <= n:
@@ -187,3 +189,76 @@ class MapElitesArchive(Archive[G], Generic[G]):
 
         indices = rng.choice(len(individuals), size=n, replace=False)
         return [individuals[i] for i in indices]
+
+    def seed(self, n: int, rng=None) -> list[G]:
+        """Sample N genomes from current elites to warm-start a new run.
+
+        Empty archive -> empty list (redqueen-spec interfaces.md §5).
+        """
+        return [ind.genome for ind in self.sample_random(n, rng)]
+
+    def to_dict(self) -> dict:
+        """Serialize to the Archive wire schema (redqueen-spec types.md)."""
+        cov = self.coverage()
+        cells = []
+        for coords in sorted(self.cells.keys()):
+            ind = self.cells[coords]
+            cells.append(
+                {
+                    "coords": list(coords),
+                    "elite": {
+                        "genome": ind.genome.to_dict(),
+                        "fitness": {
+                            "value": ind.fitness.value,
+                            "objectives": (
+                                list(ind.fitness.objectives)
+                                if ind.fitness.objectives is not None
+                                else None
+                            ),
+                        },
+                        "behavior": {"values": list(ind.behavior.values)},
+                        "generation": ind.birth_generation,
+                    },
+                }
+            )
+        return {
+            "spec_version": SPEC_VERSION,
+            "dimensions": [
+                {"name": d.name, "min": d.min_value, "max": d.max_value, "bins": d.bins}
+                for d in self.dimensions
+            ],
+            "cells": cells,
+            "coverage": {
+                "filled_cells": cov.filled_cells,
+                "total_cells": cov.total_cells,
+                "coverage_percent": cov.coverage_percent,
+            },
+        }
+
+    def save(self, uri: str) -> None:
+        """Persist the archive to a ``file://`` path (or a plain path)."""
+        path = uri[len("file://") :] if uri.startswith("file://") else uri
+        Path(path).write_text(canonical_json(self.to_dict()) + "\n")
+
+    @classmethod
+    def load(cls, uri: str, genome_class: type[G]) -> MapElitesArchive[G]:
+        """Load an archive written by :meth:`save`; ``genome_class`` rebuilds elites."""
+        path = uri[len("file://") :] if uri.startswith("file://") else uri
+        data = json.loads(Path(path).read_text())
+        dims = [
+            BehaviorDimension(d["name"], d["min"], d["max"], d["bins"]) for d in data["dimensions"]
+        ]
+        archive = cls(dims)
+        for cell in data["cells"]:
+            elite = cell["elite"]
+            f = elite["fitness"]
+            archive.cells[tuple(cell["coords"])] = Individual(
+                genome=genome_class.from_dict(elite["genome"]),
+                fitness=FitnessValue(
+                    value=f["value"],
+                    objectives=tuple(f["objectives"]) if f["objectives"] is not None else None,
+                ),
+                behavior=BehaviorDescriptor(tuple(elite["behavior"]["values"])),
+                birth_generation=elite["generation"],
+            )
+        return archive
