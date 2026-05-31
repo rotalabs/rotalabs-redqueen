@@ -16,6 +16,7 @@ from rotalabs_redqueen.core.canonical import canonical_json
 from rotalabs_redqueen.core.fitness import FitnessValue
 from rotalabs_redqueen.core.genome import BehaviorDescriptor, Genome
 from rotalabs_redqueen.core.population import Individual
+from rotalabs_redqueen.core.rng import Rng
 from rotalabs_redqueen.core.stimulus import SPEC_VERSION
 
 G = TypeVar("G", bound=Genome)
@@ -168,7 +169,7 @@ class MapElitesArchive(Archive[G], Generic[G]):
             total *= dim.bins
         return ArchiveCoverage(filled_cells=len(self.cells), total_cells=total)
 
-    def sample_random(self, n: int, rng=None) -> list[Individual[G]]:
+    def sample_random(self, n: int, rng: Rng | None = None) -> list[Individual[G]]:
         """Sample N random individuals from the archive.
 
         Args:
@@ -178,8 +179,6 @@ class MapElitesArchive(Archive[G], Generic[G]):
         Returns:
             List of sampled individuals
         """
-        from rotalabs_redqueen.core.rng import Rng
-
         if rng is None:
             rng = Rng()
 
@@ -190,7 +189,7 @@ class MapElitesArchive(Archive[G], Generic[G]):
         indices = rng.choice(len(individuals), size=n, replace=False)
         return [individuals[i] for i in indices]
 
-    def seed(self, n: int, rng=None) -> list[G]:
+    def seed(self, n: int, rng: Rng | None = None) -> list[G]:
         """Sample N genomes from current elites to warm-start a new run.
 
         Empty archive -> empty list (redqueen-spec interfaces.md §5).

@@ -82,9 +82,10 @@ async def coevolve(
     """Co-evolve attacker and defender populations.
 
     Args:
-        attacker_class / defender_class: genome classes to evolve.
-        attacker_fitness_vs(defender): builds the attacker Fitness against a defender.
-        defender_fitness_vs(attacker): builds the defender Fitness against an attacker.
+        attacker_class: attacker genome class to evolve.
+        defender_class: defender genome class to evolve.
+        attacker_fitness_vs: given a defender, builds the attacker Fitness.
+        defender_fitness_vs: given an attacker, builds the defender Fitness.
     """
     rng = Rng(seed)
     attackers: list[Genome] = [attacker_class.random(rng) for _ in range(population_size)]
