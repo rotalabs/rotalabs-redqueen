@@ -11,3 +11,6 @@ site/
 
 .pytest_cache/
 .ruff_cache/
+
+# local provider keys (never commit)
+.secrets.env

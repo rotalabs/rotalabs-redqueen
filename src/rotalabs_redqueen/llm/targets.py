@@ -14,6 +14,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 
+import httpx
+
 from rotalabs_redqueen.core.stimulus import (
     AGENTIC,
     MULTI_TURN,
@@ -135,10 +137,17 @@ class LLMTarget(ABC):
 class OpenAITarget(LLMTarget):
     """OpenAI API target (GPT-4, etc.)."""
 
-    def __init__(self, model: str = "gpt-4", api_key: str | None = None, max_tokens: int = 1000):
+    def __init__(
+        self,
+        model: str = "gpt-4",
+        api_key: str | None = None,
+        max_tokens: int = 1000,
+        transport: httpx.BaseTransport | None = None,
+    ):
         self.model = model
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
         self.max_tokens = max_tokens
+        self._transport = transport
         if not self.api_key:
             raise ValueError("OpenAI API key required")
 
@@ -152,7 +161,7 @@ class OpenAITarget(LLMTarget):
         import httpx
 
         start = time.time()
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(transport=self._transport) as client:
             try:
                 response = await client.post(
                     "https://api.openai.com/v1/chat/completions",
@@ -191,10 +200,12 @@ class AnthropicTarget(LLMTarget):
         model: str = "claude-sonnet-4-20250514",
         api_key: str | None = None,
         max_tokens: int = 1000,
+        transport: httpx.BaseTransport | None = None,
     ):
         self.model = model
         self.api_key = api_key or os.environ.get("ANTHROPIC_API_KEY")
         self.max_tokens = max_tokens
+        self._transport = transport
         if not self.api_key:
             raise ValueError("Anthropic API key required")
 
@@ -218,7 +229,7 @@ class AnthropicTarget(LLMTarget):
             payload["system"] = system
 
         start = time.time()
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(transport=self._transport) as client:
             try:
                 response = await client.post(
                     "https://api.anthropic.com/v1/messages",
@@ -250,9 +261,15 @@ class AnthropicTarget(LLMTarget):
 class OllamaTarget(LLMTarget):
     """Local Ollama target (chat API)."""
 
-    def __init__(self, model: str = "llama2", base_url: str = "http://localhost:11434"):
+    def __init__(
+        self,
+        model: str = "llama2",
+        base_url: str = "http://localhost:11434",
+        transport: httpx.BaseTransport | None = None,
+    ):
         self.model = model
         self.base_url = base_url
+        self._transport = transport
 
     @property
     def name(self) -> str:
@@ -264,7 +281,7 @@ class OllamaTarget(LLMTarget):
         import httpx
 
         start = time.time()
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(transport=self._transport) as client:
             try:
                 response = await client.post(
                     f"{self.base_url}/api/chat",
@@ -294,15 +311,17 @@ class GeminiTarget(LLMTarget):
 
     def __init__(
         self,
-        model: str = "gemini-1.5-pro",
+        model: str = "gemini-2.0-flash",
         api_key: str | None = None,
         max_tokens: int = 1000,
+        transport: httpx.BaseTransport | None = None,
     ):
         self.model = model
         self.api_key = (
             api_key or os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
         )
         self.max_tokens = max_tokens
+        self._transport = transport
         if not self.api_key:
             raise ValueError("Gemini API key required")
 
@@ -335,7 +354,7 @@ class GeminiTarget(LLMTarget):
             f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent"
         )
         start = time.time()
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(transport=self._transport) as client:
             try:
                 response = await client.post(
                     url, params={"key": self.api_key}, json=payload, timeout=60.0
@@ -467,7 +486,7 @@ def create_target(target_spec: str) -> LLMTarget:
     elif provider == "ollama":
         return OllamaTarget(model=model or "llama2")
     elif provider == "gemini":
-        return GeminiTarget(model=model or "gemini-1.5-pro")
+        return GeminiTarget(model=model or "gemini-2.0-flash")
     elif provider == "mock":
         mode_map = {
             "refuse": MockTarget.Mode.ALWAYS_REFUSE,

@@ -206,7 +206,7 @@ class TestGeminiTarget:
 
     def test_name_id_and_kinds(self):
         target = GeminiTarget(api_key="test-key")
-        assert target.name == "gemini:gemini-1.5-pro"
+        assert target.name == "gemini:gemini-2.0-flash"
         assert target.id == target.name
         assert "single_turn" in target.supported_kinds
 
